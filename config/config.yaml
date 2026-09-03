@@ -1,0 +1,168 @@
+project:
+  name: "telecom-churn-ltv-predictor"
+  version: "1.0.0"
+  author: "Telecom Data Science & Analytics Team"
+  description: "End-to-end subscriber churn prediction, customer lifetime value (CLV) modeling, and behavioral segmentation using Telecom Italia CDRs and ISTAT socioeconomic demographics."
+
+paths:
+  raw_cdr_dir: "data/raw/cdr"
+  raw_istat_dir: "data/raw/istat"
+  raw_demographics_file: "data/raw/istat/milano_census_2011.geojson"
+  processed_dir: "data/processed"
+  external_dir: "data/external"
+  models_dir: "models"
+  reports_dir: "reports"
+  dashboards_dir: "dashboards"
+  images_dir: "images"
+  customer_features_file: "data/processed/customer_features.parquet"
+  rfm_metrics_file: "data/processed/rfm_metrics.parquet"
+  clv_predictions_file: "data/processed/clv_predictions.parquet"
+  churn_predictions_file: "data/processed/churn_predictions.parquet"
+  retention_matrix_file: "data/processed/retention_strategy_matrix.csv"
+
+dataverse:
+  doi: "10.7910/DVN/0AGIX7"
+  base_url: "https://dataverse.harvard.edu/api/access/datafile"
+  dataset_title: "Open-Data-Trentino-Telecom-Italia-Big-Data-Challenge"
+  milan_grid_geojson: "https://raw.githubusercontent.com/computational-geography/telecom-italia-grid/master/milano-grid.geojson"
+  sample_files:
+    - "sms-call-internet-mi-2013-11-01.txt.gz"
+    - "sms-call-internet-mi-2013-11-02.txt.gz"
+    - "sms-call-internet-mi-2013-11-03.txt.gz"
+
+cdr_schema:
+  columns:
+    - "square_id"
+    - "time_interval"
+    - "country_code"
+    - "sms_in"
+    - "sms_out"
+    - "call_in"
+    - "call_out"
+    - "internet_traffic"
+  time_col: "time_interval"
+  grid_id_col: "square_id"
+  country_code_col: "country_code"
+  peak_start_hour: 8
+  peak_end_hour: 20
+  time_interval_step_minutes: 10
+  time_format: "epoch_ms"
+
+istat_demographics:
+  features:
+    - "population_density_sqkm"
+    - "median_household_income_eur"
+    - "unemployment_rate_pct"
+    - "pct_age_under_25"
+    - "pct_age_25_64"
+    - "pct_age_over_65"
+    - "tertiary_education_rate_pct"
+  spatial_crs: "EPSG:4326"
+  target_crs: "EPSG:32632"  # UTM Zone 32N for Lombardy/Milan metric projections
+
+rfm_parameters:
+  recency_days_lookback: 90
+  frequency_transaction_min: 1
+  monetary_arpu_multiplier: 0.15 # estimated EUR per aggregate activity unit
+  quantiles: [0.2, 0.4, 0.6, 0.8]
+  segment_labels:
+    - "Champions"
+    - "Loyal High Value"
+    - "Potential Loyalists"
+    - "Promising Recent"
+    - "Needs Attention"
+    - "At Risk"
+    - "Hibernating"
+    - "Lost"
+
+clustering:
+  features:
+    - "avg_daily_calls"
+    - "avg_daily_sms"
+    - "avg_daily_internet_mb"
+    - "peak_hour_activity_ratio"
+    - "weekend_activity_ratio"
+    - "international_call_ratio"
+    - "entropy_grid_dispersion"
+    - "median_income_neighborhood"
+  scaling: "standard"
+  kmeans:
+    k_min: 2
+    k_max: 8
+    optimal_k: 4
+    random_state: 42
+    n_init: 20
+  gmm:
+    n_components: 4
+    covariance_type: "full"
+    random_state: 42
+
+clv_modeling:
+  model_type: "BG/NBD + Gamma-Gamma"
+  time_unit: "W"  # Weekly frequency
+  observation_period_end: "2013-12-31"
+  predict_horizon_days: 365
+  discount_rate_annual: 0.10
+  penalizer_coef: 0.01
+  gamma_penalizer_coef: 0.01
+  clv_currency: "EUR"
+
+churn_prediction:
+  target_column: "churn_90d"
+  test_size: 0.25
+  random_state: 42
+  imbalance_strategy: "SMOTE"
+  smote_sampling_strategy: 0.65
+  classifier: "RandomForest"
+  rf_hyperparameters:
+    n_estimators: 250
+    max_depth: 14
+    min_samples_split: 5
+    min_samples_leaf: 2
+    class_weight: "balanced_subsample"
+    n_jobs: -1
+  threshold_tuning:
+    metric_to_optimize: "f2_score"  # Prioritize recall for telecom churn
+    cost_fp: 50.0   # retention incentive cost
+    cost_fn: 480.0  # lost customer annual lifetime margin
+
+retention_strategy:
+  tiers:
+    tier_1_high_clv_high_risk:
+      name: "VIP White-Glove Retention"
+      offer_cost_eur: 65.0
+      incentive_description: "12-month loyalty discount (-25%) + 5G Unlimited data pass + priority customer concierge"
+      expected_takeup_rate: 0.68
+      churn_mitigation_rate: 0.45
+    tier_2_high_clv_low_risk:
+      name: "High Value Appreciation"
+      offer_cost_eur: 25.0
+      incentive_description: "Complimentary streaming partner subscription + device upgrade credit"
+      expected_takeup_rate: 0.55
+      churn_mitigation_rate: 0.30
+    tier_3_medium_clv_high_risk:
+      name: "Proactive Saver Offer"
+      offer_cost_eur: 30.0
+      incentive_description: "Custom bundle matching recent usage profile + bill credit EUR 15"
+      expected_takeup_rate: 0.60
+      churn_mitigation_rate: 0.40
+    tier_4_low_clv_high_risk:
+      name: "Automated Digital Retention"
+      offer_cost_eur: 10.0
+      incentive_description: "Automated app notification + 10GB bonus data for 30 days"
+      expected_takeup_rate: 0.40
+      churn_mitigation_rate: 0.20
+    tier_5_low_clv_low_risk:
+      name: "Organic Standard Engagement"
+      offer_cost_eur: 0.0
+      incentive_description: "Standard newsletter, seasonal product recommendations"
+      expected_takeup_rate: 0.15
+      churn_mitigation_rate: 0.05
+
+bigquery:
+  project_id: "telecom-analytics-prod"
+  dataset: "telecom_italia_cdr"
+  tables:
+    raw_cdr: "cdr_raw_stream"
+    customer_daily: "customer_daily_behavior"
+    features: "customer_master_features"
