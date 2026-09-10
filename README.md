@@ -1,5 +1,6 @@
 # Telecom Customer Churn & Lifetime Value (CLV) Engine
 
+[![CI](https://github.com/abdussatarkhan/telecom-churn-ltv-predictor/actions/workflows/ci.yml/badge.svg)](https://github.com/abdussatarkhan/telecom-churn-ltv-predictor/actions)
 [![XGBoost](https://img.shields.io/badge/XGBoost-Churn_ML-EB5424?style=for-the-badge&logo=xgboost&logoColor=white)](https://xgboost.readthedocs.io/) [![Survival Analysis](https://img.shields.io/badge/Survival-Cox_PH-8338EC?style=for-the-badge)](https://lifelines.readthedocs.io/) [![Python](https://img.shields.io/badge/Python-LTV_Analytics-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Author](https://img.shields.io/badge/Author-Abdussatar-E50914?style=for-the-badge&logo=github&logoColor=white)](https://github.com/abdussatarkhan)
 
@@ -56,6 +57,16 @@ source venv/bin/activate  # On Windows: .\venv\Scripts\activate
 # Install dependencies (if requirements.txt exists)
 pip install -r requirements.txt
 ```
+
+---
+
+## 🗺️ Roadmap & Upcoming Features
+
+- [x] Cox Proportional Hazards customer tenure survival analysis
+- [x] XGBoost churn risk classification and CLV matrix
+- [ ] CausalML / EconML uplift modeling for retention targeting
+- [ ] Automated high-risk customer retention discount generator
+- [ ] Real-time CDR (Call Detail Record) streaming pipeline
 
 ---
 
