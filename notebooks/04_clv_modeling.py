@@ -7,6 +7,12 @@
 # 2. **Gamma-Gamma Submodel:** Predicts expected monetary spend per transaction.
 # 3. **Net Present Value (NPV):** Discounts cash flows to compute 12-month forward CLV.
 
+### Mathematical Foundations:
+- **BG/NBD Probability of Being Active ($P(\text{Alive})$)**:
+  $$P(\text{Alive} \mid x, t_x, T) = \left[ 1 + \frac{a}{b + x - 1} \left(\frac{\alpha + T}{\alpha + t_x}\right)^{r + x} \right]^{-1}$$
+- **Gamma-Gamma Expected Value per Transaction**:
+  $$E(M \mid p, q, \gamma, \bar{x}, x) = \frac{q - 1}{p x + q - 1} \cdot \frac{\gamma p}{q - 1} + \frac{p x}{p x + q - 1} \bar{x}$$
+
 # %%
 import os
 import sys
